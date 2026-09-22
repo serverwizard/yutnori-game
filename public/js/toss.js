@@ -16,6 +16,8 @@ const CONFETTI_MS = 4000;
 const MEMBER_MAX_LENGTH = 10;
 const MEMBERS_MAX = 40;
 const TEAM_NAME_MAX_LENGTH = 10;
+/** 뒷도(백도)는 항상 적용한다: ★ 표시 가락 하나만 배가 위로 오면 뒤로 한 칸 */
+const BACKDO_ENABLED = true;
 
 const TEAM_PRESETS = [
   { name: '호랑이팀', emoji: '🐯', color: '#ff6b6b' },
@@ -58,7 +60,6 @@ function defaultState() {
   return {
     settings: {
       teamCount: 2,
-      backdo: false,
       sound: true,
       teamNames: [null, null, null, null],
       members: [[], [], [], []],
@@ -144,6 +145,7 @@ export function mountTossPage(container, { onLeave }) {
         <div class="sticks">${Array.from({ length: STICK_COUNT }, () => '<div class="stick"><span class="stick-face"></span></div>').join('')}</div>
         <div class="toss-result-big" data-r="result"></div>
         <div class="toss-message" data-r="message">윷가락을 꾹 눌러서 흔들어 봐요!</div>
+        <div class="muted toss-caption">★ 가락 하나만 배가 위로 오면 뒷도!</div>
       </section>
       <section class="toss-actions">
         <button class="btn hold-btn" data-t="throw">🥢 꾹 눌러 흔들고, 놓으면 던져요!</button>
@@ -211,9 +213,8 @@ export function mountTossPage(container, { onLeave }) {
     for (const stick of els.sticks) {
       stick.className = 'stick';
     }
-    if (state.settings.backdo) {
-      els.sticks[0].classList.add('marked');
-    }
+    // 뒷도 표시 가락은 항상 첫 번째
+    els.sticks[0].classList.add('marked');
   }
 
   // ---- 차례 -----------------------------------------------------------------
@@ -282,7 +283,7 @@ export function mountTossPage(container, { onLeave }) {
     els.throwBtn.disabled = true;
     sound.unlock();
     const flats = tossSticks();
-    const result = judgeToss(flats, state.settings.backdo);
+    const result = judgeToss(flats, BACKDO_ENABLED);
     const team = teamsOf(state)[state.turn.teamIndex];
 
     els.result.textContent = '';
@@ -372,7 +373,7 @@ export function mountTossPage(container, { onLeave }) {
           </div>`,
           )
           .join('')}
-        <div class="setting-row"><div class="label">뒷도(백도)<small>★ 가락 하나만 배가 위면 뒤로 1칸</small></div>${seg('backdo', [{ value: false, label: '끄기' }, { value: true, label: '켜기' }], draft.backdo)}</div>
+        <div class="setting-row"><div class="label">뒷도(백도)<small>★ 표시 가락 하나만 배가 위면 뒤로 1칸</small></div><span class="chip">항상 켜짐</span></div>
         <div class="setting-row"><div class="label">효과음</div>${seg('sound', [{ value: false, label: '끄기' }, { value: true, label: '켜기' }], draft.sound)}</div>
         <div class="row" style="margin-top:14px">
           <button class="btn btn-primary grow" data-t="settings-save">저장</button>

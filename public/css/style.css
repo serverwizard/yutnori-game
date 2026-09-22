@@ -1268,6 +1268,11 @@ input {
   min-height: 1.6em;
 }
 
+.toss-caption {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .toss-actions {
   display: grid;
   gap: 10px;
