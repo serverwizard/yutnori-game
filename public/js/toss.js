@@ -1,13 +1,12 @@
 /**
  * 윷 던지기 전용 모드 (실물 윷판·말과 함께 쓰는 디지털 윷가락).
- *  - 반(classId)마다 차례·설정을 이 기기의 localStorage 에 따로 저장한다.
- *    같은 주소를 다른 반이 다른 기기에서 열어도 서로 섞이지 않고, 한 기기를 여러 반이 돌려 써도 반별로 분리된다.
+ *  - 팀·차례·설정은 이 기기의 localStorage 에만 저장한다. 반마다 기기 1대를 쓰므로 반끼리 자연스럽게 격리된다.
  *  - 서버 통신이 없어 한 번 열어 두면 네트워크가 끊겨도 계속 던질 수 있다.
  */
 import { judgeToss, tossSticks, TOSS_RESULTS, STICK_COUNT } from './toss-rules.js';
 import { SoundBox } from './sound.js';
 
-const STORAGE_PREFIX = 'yut.toss.v1.';
+const STORAGE_KEY = 'yut.toss.v1';
 const SHAKE_RATTLE_MS = 110;
 const ROLL_MS = 900;
 const LAND_GAP_MS = 140;
@@ -17,7 +16,6 @@ const CONFETTI_MS = 4000;
 const MEMBER_MAX_LENGTH = 10;
 const MEMBERS_MAX = 40;
 const TEAM_NAME_MAX_LENGTH = 10;
-const CLASS_ID_PATTERN = /^[A-Za-z0-9가-힣_-]{1,20}$/;
 
 const TEAM_PRESETS = [
   { name: '호랑이팀', emoji: '🐯', color: '#ff6b6b' },
@@ -34,16 +32,6 @@ const MESSAGES = {
   MO: ['다섯 칸 + 한 번 더! 🏆', '모다 모! 최고의 던지기 🎆', '전설의 다섯 칸! 🌟', '모! 교실이 떠나가요! 📣'],
   BACKDO: ['뒤로 한 칸 🙈', '어라? 한 칸 뒤로~ 🔙', '괜찬아요, 다음에 만회! 💫', '뒷걸음질 한 칸 🦀'],
 };
-
-export function isValidClassId(classId) {
-  return CLASS_ID_PATTERN.test(String(classId ?? ''));
-}
-
-/** "3-1" → "3학년 1반", 그 외는 그대로 */
-export function classLabel(classId) {
-  const match = String(classId).match(/^(\d{1,2})-(\d{1,2})$/);
-  return match ? `${match[1]}학년 ${match[2]}반` : String(classId);
-}
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
@@ -63,45 +51,11 @@ function sleep(ms) {
 }
 
 // ---------------------------------------------------------------------------
-// 반 고르기
-// ---------------------------------------------------------------------------
-
-const DEFAULT_CLASS_COUNT = 10;
-const GRADES = [1, 2, 3, 4, 5, 6];
-
-export function renderClassPicker(grade) {
-  return `
-    <div class="landing">
-      <p class="hero">🥢</p>
-      <h1 class="title">우리 반을 골라요<small>반마다 팀과 차례가 따로 저장돼요</small></h1>
-      <section class="card">
-        <div class="setting-row">
-          <div class="label">학년</div>
-          <div class="seg">${GRADES.map((g) => `<button class="${g === grade ? 'active' : ''}" data-action="pick-grade" data-grade="${g}">${g}</button>`).join('')}</div>
-        </div>
-        <h2 style="margin-top:14px">${grade}학년 몇 반인가요?</h2>
-        <div class="class-grid">
-          ${Array.from({ length: DEFAULT_CLASS_COUNT }, (_, i) => i + 1)
-            .map((c) => `<button class="btn" data-action="pick-class" data-class="${grade}-${c}">${c}반</button>`)
-            .join('')}
-        </div>
-        <div class="row" style="margin-top:14px">
-          <input class="input grow" id="class-input" maxlength="20" placeholder="직접 입력 (예: 3-11, 별빛반)" autocomplete="off" />
-          <button class="btn btn-secondary" data-action="pick-class-custom">열기</button>
-        </div>
-        <p class="muted" style="margin-top:10px">한글·영문·숫자·하이픈(-)으로 20자까지 쓸 수 있어요.</p>
-      </section>
-      <p class="center"><button class="btn btn-ghost" data-action="go-home">시작 화면으로</button></p>
-    </div>`;
-}
-
-// ---------------------------------------------------------------------------
 // 상태 저장
 // ---------------------------------------------------------------------------
 
-function defaultState(classId) {
+function defaultState() {
   return {
-    classId,
     settings: {
       teamCount: 2,
       backdo: false,
@@ -115,17 +69,16 @@ function defaultState(classId) {
   };
 }
 
-function loadState(classId) {
-  const base = defaultState(classId);
+function loadState() {
+  const base = defaultState();
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_PREFIX + classId) ?? 'null');
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
     if (!saved || typeof saved !== 'object') {
       return base;
     }
     return {
       ...base,
       ...saved,
-      classId,
       settings: { ...base.settings, ...(saved.settings ?? {}) },
       turn: { ...base.turn, ...(saved.turn ?? {}) },
     };
@@ -136,8 +89,8 @@ function loadState(classId) {
 
 function saveState(state) {
   try {
-    const { classId, settings, turn, pendingExtra, lastThrow } = state;
-    localStorage.setItem(STORAGE_PREFIX + classId, JSON.stringify({ classId, settings, turn, pendingExtra, lastThrow }));
+    const { settings, turn, pendingExtra, lastThrow } = state;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ settings, turn, pendingExtra, lastThrow }));
   } catch {
     // 저장이 막혀도(사생활 보호 모드 등) 이 화면 안에서는 계속 동작한다
   }
@@ -167,22 +120,20 @@ function currentMember(state, teamIndex) {
 
 /**
  * @param {HTMLElement} container 비어 있는 컨테이너. 이 함수가 내용을 채우고 관리한다.
- * @param {string} classId
  * @param {{ onLeave: () => void }} handlers
- * @returns {{ classId: string, unmount: () => void }}
+ * @returns {{ unmount: () => void }}
  */
-export function mountTossPage(container, classId, { onLeave }) {
-  const state = loadState(classId);
+export function mountTossPage(container, { onLeave }) {
+  const state = loadState();
   const sound = new SoundBox(state.settings.sound);
-  const label = classLabel(classId);
   const previousTitle = document.title;
-  document.title = `${label} 윷 던지기`;
+  document.title = '윷 던지기';
 
   container.innerHTML = `
     <div class="toss-page">
       <header class="toss-header">
-        <button class="btn btn-ghost btn-sm" data-t="leave">‹ 반 바꾸기</button>
-        <h1>🥢 ${esc(label)} 윷 던지기</h1>
+        <button class="btn btn-ghost btn-sm" data-t="leave">‹ 시작 화면</button>
+        <h1>🥢 윷 던지기</h1>
         <div class="row">
           <button class="btn btn-sm" data-t="sound" aria-label="효과음"></button>
           <button class="btn btn-sm" data-t="settings">⚙️ 설정</button>
@@ -407,7 +358,7 @@ export function mountTossPage(container, classId, { onLeave }) {
       `<div class="seg" data-s="${name}">${options.map((o) => `<button class="${o.value === current ? 'active' : ''}" data-value="${o.value}">${o.label}</button>`).join('')}</div>`;
     els.settings.innerHTML = `
       <div class="modal-card">
-        <h2 style="margin:0 0 10px">⚙️ ${esc(label)} 설정</h2>
+        <h2 style="margin:0 0 10px">⚙️ 설정</h2>
         <div class="setting-row"><div class="label">팀 수</div>${seg('teamCount', [2, 3, 4].map((v) => ({ value: v, label: v })), draft.teamCount)}</div>
         ${TEAM_PRESETS.slice(0, draft.teamCount)
           .map(
@@ -423,10 +374,6 @@ export function mountTossPage(container, classId, { onLeave }) {
           .join('')}
         <div class="setting-row"><div class="label">뒷도(백도)<small>★ 가락 하나만 배가 위면 뒤로 1칸</small></div>${seg('backdo', [{ value: false, label: '끄기' }, { value: true, label: '켜기' }], draft.backdo)}</div>
         <div class="setting-row"><div class="label">효과음</div>${seg('sound', [{ value: false, label: '끄기' }, { value: true, label: '켜기' }], draft.sound)}</div>
-        <div class="setting-row">
-          <div class="label">이 반 주소<small>다른 기기에서 열 때 찍어요</small></div>
-          <img class="mini-qr" src="/qr/toss/${encodeURIComponent(classId)}.svg" alt="이 반 주소 QR" />
-        </div>
         <div class="row" style="margin-top:14px">
           <button class="btn btn-primary grow" data-t="settings-save">저장</button>
           <button class="btn" data-t="settings-close">닫기</button>
@@ -456,7 +403,7 @@ export function mountTossPage(container, classId, { onLeave }) {
   }
 
   function resetTurn() {
-    const fresh = defaultState(classId);
+    const fresh = defaultState();
     state.turn = fresh.turn;
     state.pendingExtra = false;
     state.lastThrow = null;
@@ -579,7 +526,6 @@ export function mountTossPage(container, classId, { onLeave }) {
   renderAll();
 
   return {
-    classId,
     unmount() {
       stopShake();
       document.removeEventListener('keydown', onKeyDown);

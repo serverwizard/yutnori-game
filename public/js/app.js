@@ -7,7 +7,7 @@
  *  - 서버 상태(state)는 순서대로 큐에 넣어 처리하며, 윷 던지기 이벤트는 애니메이션이 끝날 때까지 다음 상태를 기다린다.
  */
 import { createBoard } from './board.js';
-import { isValidClassId, mountTossPage, renderClassPicker } from './toss.js';
+import { mountTossPage } from './toss.js';
 
 const SESSION_KEY = 'yut.session.v1';
 const RECONNECT_MIN_MS = 1000;
@@ -47,7 +47,6 @@ const state = {
   replaced: false,
   joining: false,
   nickDraft: null,
-  tossGrade: 3,
   tossPage: null,
   memberMenu: null,
   rulesOpen: false,
@@ -74,25 +73,16 @@ function parseRoute(pathname) {
   if (match) {
     return { kind: 'player', code: match[1] };
   }
-  if (pathname === '/toss') {
-    return { kind: 'toss-picker' };
-  }
-  match = pathname.match(/^\/toss\/([^/]+)$/);
-  if (match) {
-    let classId = '';
-    try {
-      classId = decodeURIComponent(match[1]);
-    } catch {
-      classId = '';
-    }
-    return isValidClassId(classId) ? { kind: 'toss', classId } : { kind: 'toss-picker' };
+  // 예전 반별 주소(/toss/3-1)도 같은 화면으로 연다
+  if (pathname === '/toss' || pathname.startsWith('/toss/')) {
+    return { kind: 'toss' };
   }
   return { kind: 'landing' };
 }
 
 /** 윷 던지기 전용 모드는 서버 연결 없이 동작한다 */
 function needsSocket(route) {
-  return route.kind !== 'toss' && route.kind !== 'toss-picker';
+  return route.kind !== 'toss';
 }
 
 function navigate(pathname) {
@@ -452,13 +442,12 @@ function sleep(ms) {
 function render() {
   const { route, room, role } = state;
   if (route.kind === 'toss') {
-    if (state.tossPage?.classId === route.classId) {
+    if (state.tossPage) {
       return;
     }
-    unmountToss();
     appEl.innerHTML = '';
     connBanner.classList.add('hidden');
-    state.tossPage = mountTossPage(appEl, route.classId, { onLeave: () => navigate('/toss') });
+    state.tossPage = mountTossPage(appEl, { onLeave: () => navigate('/') });
     return;
   }
   unmountToss();
@@ -467,8 +456,6 @@ function render() {
     html = renderReplaced();
   } else if (state.rulesOpen) {
     html = renderRules();
-  } else if (route.kind === 'toss-picker') {
-    html = renderClassPicker(state.tossGrade);
   } else if (route.kind === 'landing') {
     html = renderLanding();
   } else if (route.kind === 'host') {
@@ -570,8 +557,8 @@ function renderLanding() {
       <h1 class="title">우리 반 윷놀이<small>반 친구들과 함께하는 전통 놀이</small></h1>
       <section class="card toss-entry">
         <h2>🥢 윷만 던지기</h2>
-        <p>윷판과 말은 진짜로, 윷 던지기만 화면으로! 반마다 차례와 기록이 따로 저장되고 인터넷이 끊겨도 돼요.</p>
-        <button class="btn btn-primary btn-xl" data-action="go-toss">우리 반 윷 던지기</button>
+        <p>윷판과 말은 진짜로, 윷 던지기만 화면으로! 팀과 차례는 이 기기에 저장되고 인터넷이 끊겨도 돼요.</p>
+        <button class="btn btn-primary btn-xl" data-action="go-toss">윷 던지기 시작</button>
       </section>
       <h2 class="center muted" style="font-size:1rem;margin:4px 0 12px">— 또는 윷판까지 화면으로 함께 하기 —</h2>
       <section class="card">
@@ -960,14 +947,6 @@ function bindActions() {
       codeInput.focus();
     }
   }
-  const classInput = appEl.querySelector('#class-input');
-  if (classInput) {
-    classInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        appEl.querySelector('[data-action="pick-class-custom"]')?.click();
-      }
-    });
-  }
   const nickInput = appEl.querySelector('#nick-input');
   if (nickInput) {
     nickInput.addEventListener('input', () => {
@@ -1021,24 +1000,6 @@ function onAction(event) {
     case 'go-toss':
       navigate('/toss');
       break;
-    case 'pick-grade':
-      state.tossGrade = Number(element.dataset.grade);
-      render();
-      break;
-    case 'pick-class':
-      navigate(`/toss/${encodeURIComponent(element.dataset.class)}`);
-      break;
-    case 'pick-class-custom': {
-      const input = appEl.querySelector('#class-input');
-      const classId = (input?.value ?? '').trim().replace(/\s+/g, '-');
-      if (!isValidClassId(classId)) {
-        toast('한글·영문·숫자·하이픈으로 20자까지 써 주세요.');
-        input?.focus();
-        return;
-      }
-      navigate(`/toss/${encodeURIComponent(classId)}`);
-      break;
-    }
     case 'close-rules':
       state.rulesOpen = false;
       render();
