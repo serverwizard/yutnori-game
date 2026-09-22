@@ -9,7 +9,7 @@ const LAND_GAP_MS = 140;
 const RESULT_HOLD_MS = 600;
 const MO_SHAKE_MS = 700;
 const CONFETTI_MS = 4000;
-/** 빽도는 항상 적용한다: ● 표시 막대 하나만 앞면이면 뒤로 한 칸 */
+/** 빽도는 항상 적용한다: ● 표시 막대 하나만 뒤집히면 뒤로 한 칸 */
 const BACKDO_ENABLED = true;
 const MARKED_STICK_INDEX = 0;
 const BODY_CLASS = 'toss-mode';
@@ -34,8 +34,9 @@ function sleep(ms) {
 
 // ---------------------------------------------------------------------------
 // 윷가락 그림: 통나무를 반으로 쪼갠 막대를 굵은 외곽선의 삽화 느낌으로 그린다
-//  - 앞면(배): 평평한 연한 크림색 단면, 옅은 나뭇결
-//  - 뒷면(등): 둥근 황갈색 껍질 쪽, 손으로 새긴 듯한 X 표시 3개, 아래 끝에 크림색 반원 단면
+//  - 앞면(등): 둥근 황갈색 껍질 쪽, 손으로 새긴 듯한 X 표시 3개, 아래 끝에 크림색 반원 단면. 던지기 전엔 모두 이 면이 보인다.
+//  - 뒤집힌 면(배): 평평한 연한 크림색 단면, 옅은 나뭇결. 던진 뒤 이 면이 위로 온 개수로 도·개·걸·윷·모를 정한다.
+//  - 클래스: is-flat = 뒤집힘(크림색 배가 위), is-round = 앞면(X 표시가 위)
 // ---------------------------------------------------------------------------
 
 /** 살짝 둥근 막대 몸통 (viewBox 0 0 100 440) */
@@ -62,7 +63,7 @@ function stickMarkup(index) {
     index === MARKED_STICK_INDEX ? '<circle cx="50" cy="52" r="16" fill="#f3c9c9" /><circle cx="50" cy="52" r="9" fill="#d32f2f" />' : '';
   const crosses = MARK_ROWS.map((y, row) => carvedCross(y, index * 3 + row)).join('');
   return `
-    <div class="yut-stick is-flat" data-stick="${index}">
+    <div class="yut-stick is-round" data-stick="${index}">
       <svg class="face front" viewBox="0 0 100 440" aria-hidden="true">
         <defs>
           <linearGradient id="yut-front-${index}" x1="0" x2="1">
@@ -111,13 +112,20 @@ function straightenStick(stick) {
   stick.style.setProperty('--dy', '0px');
 }
 
-/** "3개 앞면 · 3칸 이동" 같은 결과 설명 */
+/** "2개 뒤집힘 · 2칸 이동" 같은 결과 설명. flats[i] 가 true 면 그 막대가 뒤집혀(크림색 배가 위로) 있다. */
 function describeOutcome(result, flats) {
   if (result.key === 'BACKDO') {
     return '표시 막대만 뒤집힘 · 뒤로 1칸';
   }
-  const fronts = flats.filter(Boolean).length;
-  return `${fronts}개 앞면 · ${result.steps}칸 이동${result.again ? ' · 한 번 더!' : ''}`;
+  const flipped = flats.filter(Boolean).length;
+  const extra = result.again ? ' · 한 번 더!' : '';
+  if (flipped === 0) {
+    return `모두 앞면 · ${result.steps}칸 이동${extra}`;
+  }
+  if (flipped === flats.length) {
+    return `모두 뒤집힘 · ${result.steps}칸 이동${extra}`;
+  }
+  return `${flipped}개 뒤집힘 · ${result.steps}칸 이동${extra}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -167,10 +175,11 @@ export function mountTossPage(container, { onLeave }) {
   let busy = false;
   let shaking = false;
 
+  /** 던지기 전 상태: 모두 앞면(X 표시)이 위로, 똑바로 */
   function resetStickFaces() {
     for (const stick of els.sticks) {
-      stick.classList.remove('is-round', 'landed');
-      stick.classList.add('is-flat');
+      stick.classList.remove('is-flat', 'landed');
+      stick.classList.add('is-round');
       straightenStick(stick);
     }
   }
