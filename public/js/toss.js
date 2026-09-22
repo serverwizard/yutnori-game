@@ -1,13 +1,9 @@
 /**
  * 윷 던지기 전용 모드 (실물 윷판·말과 함께 쓰는 디지털 윷가락).
- *  - 서버 통신이 없어 한 번 열어 두면 네트워크가 끊겨도 계속 던질 수 있다.
- *  - 이 기기에 저장하는 것은 효과음 켜기/끄기 하나뿐이다.
+ *  - 서버 통신도, 저장하는 값도 없다. 한 번 열어 두면 네트워크가 끊겨도 계속 던질 수 있다.
  */
 import { judgeToss, tossSticks, STICK_COUNT } from './toss-rules.js';
-import { SoundBox } from './sound.js';
 
-const STORAGE_KEY = 'yut.toss.v2';
-const SHAKE_RATTLE_MS = 110;
 const ROLL_MS = 900;
 const LAND_GAP_MS = 140;
 const RESULT_HOLD_MS = 600;
@@ -78,27 +74,6 @@ function stickMarkup(index) {
     </div>`;
 }
 
-// ---------------------------------------------------------------------------
-// 저장 (효과음 설정만)
-// ---------------------------------------------------------------------------
-
-function loadSoundEnabled() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
-    return saved?.sound !== false;
-  } catch {
-    return true;
-  }
-}
-
-function saveSoundEnabled(enabled) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ sound: enabled }));
-  } catch {
-    // 저장이 막혀도(사생활 보호 모드 등) 이 화면 안에서는 계속 동작한다
-  }
-}
-
 /** "3개 앞면 · 3칸 이동" 같은 결과 설명 */
 function describeOutcome(result, flats) {
   if (result.key === 'BACKDO') {
@@ -118,7 +93,6 @@ function describeOutcome(result, flats) {
  * @returns {{ unmount: () => void }}
  */
 export function mountTossPage(container, { onLeave }) {
-  const sound = new SoundBox(loadSoundEnabled());
   const previousTitle = document.title;
   document.title = '윷 던지기';
   document.body.classList.add(BODY_CLASS);
@@ -127,7 +101,6 @@ export function mountTossPage(container, { onLeave }) {
     <div class="toss-page">
       <div class="toss-toolbar">
         <button class="tbtn" data-t="leave">‹ 시작 화면</button>
-        <button class="tbtn" data-t="sound" aria-label="효과음"></button>
       </div>
       <header class="toss-title">
         <h1>🪵 윷 던지기</h1>
@@ -152,16 +125,10 @@ export function mountTossPage(container, { onLeave }) {
     sub: container.querySelector('[data-r="sub"]'),
     message: container.querySelector('[data-r="message"]'),
     throwBtn: container.querySelector('[data-t="throw"]'),
-    soundBtn: container.querySelector('[data-t="sound"]'),
   };
 
   let busy = false;
   let shaking = false;
-  let rattleTimer = null;
-
-  function renderSound() {
-    els.soundBtn.textContent = sound.enabled ? '🔊 소리 켬' : '🔇 소리 끔';
-  }
 
   function resetStickFaces() {
     for (const stick of els.sticks) {
@@ -177,17 +144,12 @@ export function mountTossPage(container, { onLeave }) {
       return;
     }
     shaking = true;
-    sound.unlock();
     els.stage.classList.add('shaking');
     els.throwBtn.classList.add('pressed');
-    rattleTimer = setInterval(() => sound.rattle(), SHAKE_RATTLE_MS);
-    sound.rattle();
   }
 
   function stopShake() {
     shaking = false;
-    clearInterval(rattleTimer);
-    rattleTimer = null;
     els.stage.classList.remove('shaking');
     els.throwBtn.classList.remove('pressed');
   }
@@ -198,7 +160,6 @@ export function mountTossPage(container, { onLeave }) {
     }
     busy = true;
     els.throwBtn.disabled = true;
-    sound.unlock();
     const flats = tossSticks();
     const result = judgeToss(flats, BACKDO_ENABLED);
 
@@ -208,14 +169,12 @@ export function mountTossPage(container, { onLeave }) {
     els.message.textContent = '';
     resetStickFaces();
     els.stage.classList.add('rolling');
-    sound.whoosh();
     await sleep(ROLL_MS);
     els.stage.classList.remove('rolling');
 
     for (let i = 0; i < els.sticks.length; i += 1) {
       els.sticks[i].classList.remove('is-flat', 'is-round');
       els.sticks[i].classList.add(flats[i] ? 'is-flat' : 'is-round', 'landed');
-      sound.clack();
       await sleep(LAND_GAP_MS);
     }
     await sleep(200);
@@ -224,7 +183,6 @@ export function mountTossPage(container, { onLeave }) {
     els.result.classList.add('pop');
     els.sub.textContent = describeOutcome(result, flats);
     els.message.textContent = pick(MESSAGES[result.key]);
-    sound.result(result.key);
     if (result.again) {
       launchConfetti(result.key === 'MO' ? 70 : 36);
     }
@@ -285,20 +243,8 @@ export function mountTossPage(container, { onLeave }) {
     if (!target) {
       return;
     }
-    switch (target.dataset.t) {
-      case 'leave':
-        onLeave();
-        break;
-      case 'sound':
-        sound.setEnabled(!sound.enabled);
-        if (sound.enabled) {
-          sound.tick();
-        }
-        renderSound();
-        saveSoundEnabled(sound.enabled);
-        break;
-      default:
-        break;
+    if (target.dataset.t === 'leave') {
+      onLeave();
     }
   }
 
@@ -308,8 +254,6 @@ export function mountTossPage(container, { onLeave }) {
   els.throwBtn.addEventListener('pointerleave', onPointerUp);
   container.addEventListener('click', onClick);
   document.addEventListener('keydown', onKeyDown);
-
-  renderSound();
 
   return {
     unmount() {

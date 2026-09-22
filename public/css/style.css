@@ -1032,22 +1032,6 @@ input {
   }
 }
 
-/* ---------------------------------------------------------------- 규칙 */
-
-.rules {
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.rules ul {
-  padding-left: 20px;
-  line-height: 1.7;
-}
-
-.rules b {
-  color: var(--primary);
-}
-
 .loading {
   text-align: center;
   padding: 60px 20px;
@@ -1318,10 +1302,14 @@ body.toss-mode {
   background: #b71c1c;
 }
 
+.throw-btn,
+.throw-btn:disabled {
+  cursor: default;
+}
+
 .throw-btn:disabled {
   opacity: 0.6;
   transform: none;
-  cursor: wait;
 }
 
 .toss-outcome {

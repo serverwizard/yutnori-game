@@ -49,7 +49,6 @@ const state = {
   nickDraft: null,
   tossPage: null,
   memberMenu: null,
-  rulesOpen: false,
   joinError: null,
 };
 
@@ -454,8 +453,6 @@ function render() {
   let html;
   if (state.replaced) {
     html = renderReplaced();
-  } else if (state.rulesOpen) {
-    html = renderRules();
   } else if (route.kind === 'landing') {
     html = renderLanding();
   } else if (route.kind === 'host') {
@@ -558,7 +555,6 @@ function renderLanding() {
         <h2>🥢 윷 던지기</h2>
         <button class="btn btn-primary btn-xl" data-action="go-toss">윷 던지기 시작</button>
       </section>
-      <p class="center"><button class="btn btn-ghost" data-action="open-rules">📖 윷놀이 규칙 보기</button></p>
     </div>`;
 }
 
@@ -587,26 +583,6 @@ function renderLanding() {
 //         ${session.player ? `<button class="btn btn-ghost" data-action="resume-player">이어서 하기 (방 ${esc(session.player.code)})</button>` : ''}
 //       </section>`;
 // }
-
-function renderRules() {
-  return `
-    <div class="rules">
-      <h1 class="title">📖 윷놀이 규칙</h1>
-      <section class="card">
-        <ul>
-          <li>윷가락 4개를 던져요. 배(평평한 면)가 위로 온 개수로 정해져요.<br/>
-            <b>도</b> 1칸 · <b>개</b> 2칸 · <b>걸</b> 3칸 · <b>윷</b> 4칸 · <b>모</b> 5칸</li>
-          <li><b>윷</b>이나 <b>모</b>가 나오면 말을 움직인 뒤 <b>한 번 더</b> 던져요.</li>
-          <li>상대 팀 말이 있는 칸에 도착하면 <b>잡아요</b>. 잡힌 말은 처음으로 돌아가고, 잡은 팀은 한 번 더 던져요.</li>
-          <li>우리 팀 말이 있는 칸에 도착하면 <b>업어서</b> 같이 움직여요.</li>
-          <li>모서리(5, 10)나 가운데(방)에 딱 멈추면 다음에는 <b>지름길</b>로 가요.</li>
-          <li>출발점을 지나 돌아오면 말이 <b>나요</b>. 모든 말이 먼저 나는 팀이 이겨요! 🏆</li>
-          <li>(선택) <b>백도</b>: ★ 표시 가락 하나만 배가 위면 뒤로 1칸 가요.</li>
-        </ul>
-      </section>
-      <p class="center"><button class="btn btn-primary" data-action="close-rules">돌아가기</button></p>
-    </div>`;
-}
 
 function renderReplaced() {
   return `
@@ -1001,16 +977,8 @@ function onAction(event) {
       }
       render();
       break;
-    case 'open-rules':
-      state.rulesOpen = true;
-      render();
-      break;
     case 'go-toss':
       navigate('/toss');
-      break;
-    case 'close-rules':
-      state.rulesOpen = false;
-      render();
       break;
     case 'random-nick': {
       state.nickDraft = randomNickname();
