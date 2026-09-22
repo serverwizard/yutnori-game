@@ -1,0 +1,19 @@
+{
+  "name": "yutnori-game",
+  "version": "1.0.0",
+  "description": "초등학생을 위한 반별 독립 게임방 윷놀이 (QR 코드로 접속)",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.0"
+  }
+}

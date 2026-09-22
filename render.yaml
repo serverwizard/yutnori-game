@@ -1,0 +1,20 @@
+# Render Blueprint — 대시보드에서 "New → Blueprint" 로 이 저장소를 고르면 그대로 배포된다.
+# 방 상태는 메모리에만 있으므로 인스턴스는 반드시 1개여야 한다 (무료 플랜 기본값).
+services:
+  - type: web
+    name: yutnori-game
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      # 학생 QR/링크에 쓰일 공개 주소. 비워 두면 요청 헤더로 자동 추정한다.
+      # - key: PUBLIC_URL
+      #   value: https://yutnori-game.onrender.com
