@@ -556,7 +556,6 @@ function renderLanding() {
       <h1 class="title">우리 반 윷놀이<small>반 친구들과 함께하는 전통 놀이</small></h1>
       <section class="card toss-entry">
         <h2>🥢 윷 던지기</h2>
-        <p>윷판과 말은 진짜로, 윷 던지기만 화면으로! 팀과 차례는 이 기기에 저장되고 인터넷이 끊겨도 돼요.</p>
         <button class="btn btn-primary btn-xl" data-action="go-toss">윷 던지기 시작</button>
       </section>
       <p class="center"><button class="btn btn-ghost" data-action="open-rules">📖 윷놀이 규칙 보기</button></p>
