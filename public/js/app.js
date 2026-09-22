@@ -80,9 +80,9 @@ function parseRoute(pathname) {
   return { kind: 'landing' };
 }
 
-/** 윷 던지기 전용 모드는 서버 연결 없이 동작한다 */
+/** 윷 던지기 전용 모드와 시작 화면은 서버 연결 없이 동작한다. 선생님/학생 화면으로 갈 때 연결한다. */
 function needsSocket(route) {
-  return route.kind !== 'toss';
+  return route.kind !== 'toss' && route.kind !== 'landing';
 }
 
 function navigate(pathname) {
@@ -550,35 +550,44 @@ function renderLoading(text) {
 // ---- 시작 화면 -------------------------------------------------------------
 
 function renderLanding() {
-  const { session } = state;
   return `
     <div class="landing">
       <p class="hero">🎲</p>
       <h1 class="title">우리 반 윷놀이<small>반 친구들과 함께하는 전통 놀이</small></h1>
       <section class="card toss-entry">
-        <h2>🥢 윷만 던지기</h2>
+        <h2>🥢 윷 던지기</h2>
         <p>윷판과 말은 진짜로, 윷 던지기만 화면으로! 팀과 차례는 이 기기에 저장되고 인터넷이 끊겨도 돼요.</p>
         <button class="btn btn-primary btn-xl" data-action="go-toss">윷 던지기 시작</button>
-      </section>
-      <h2 class="center muted" style="font-size:1rem;margin:4px 0 12px">— 또는 윷판까지 화면으로 함께 하기 —</h2>
-      <section class="card">
-        <h2>👩‍🏫 선생님</h2>
-        <p>게임방을 만들면 QR 코드와 방 코드가 나와요. 학생들이 찍고 들어오면 시작!</p>
-        <button class="btn btn-primary btn-xl" data-action="create-room">게임방 만들기</button>
-        ${session.host ? `<button class="btn btn-ghost" data-action="resume-host">이어서 하기 (방 ${esc(session.host.code)})</button>` : ''}
-      </section>
-      <section class="card student">
-        <h2>🧒 학생</h2>
-        <p>선생님 화면의 QR 코드를 찍거나, 방 코드 4자리를 넣어요.</p>
-        <div class="row">
-          <input class="input input-code grow" id="code-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" />
-          <button class="btn btn-secondary" data-action="join-code">들어가기</button>
-        </div>
-        ${session.player ? `<button class="btn btn-ghost" data-action="resume-player">이어서 하기 (방 ${esc(session.player.code)})</button>` : ''}
       </section>
       <p class="center"><button class="btn btn-ghost" data-action="open-rules">📖 윷놀이 규칙 보기</button></p>
     </div>`;
 }
+
+/*
+ * 온라인 윷판 모드 입구 (👩‍🏫 선생님 게임방 만들기 · 🧒 학생 들어가기).
+ * 실물 윷판만 쓰는 동안 시작 화면에서 숨겨 둔다. /host, /r/1234 주소로는 여전히 동작한다.
+ * 다시 보이려면 아래 주석을 풀고 renderLanding 의 윷 던지기 카드 아래에 `${renderOnlineEntry()}` 를 넣는다.
+ */
+// function renderOnlineEntry() {
+//   const { session } = state;
+//   return `
+//       <h2 class="center muted" style="font-size:1rem;margin:4px 0 12px">— 또는 윷판까지 화면으로 함께 하기 —</h2>
+//       <section class="card">
+//         <h2>👩‍🏫 선생님</h2>
+//         <p>게임방을 만들면 QR 코드와 방 코드가 나와요. 학생들이 찍고 들어오면 시작!</p>
+//         <button class="btn btn-primary btn-xl" data-action="create-room">게임방 만들기</button>
+//         ${session.host ? `<button class="btn btn-ghost" data-action="resume-host">이어서 하기 (방 ${esc(session.host.code)})</button>` : ''}
+//       </section>
+//       <section class="card student">
+//         <h2>🧒 학생</h2>
+//         <p>선생님 화면의 QR 코드를 찍거나, 방 코드 4자리를 넣어요.</p>
+//         <div class="row">
+//           <input class="input input-code grow" id="code-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" />
+//           <button class="btn btn-secondary" data-action="join-code">들어가기</button>
+//         </div>
+//         ${session.player ? `<button class="btn btn-ghost" data-action="resume-player">이어서 하기 (방 ${esc(session.player.code)})</button>` : ''}
+//       </section>`;
+// }
 
 function renderRules() {
   return `
