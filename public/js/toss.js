@@ -62,16 +62,44 @@ function stickMarkup(index) {
       <svg class="face back" viewBox="0 0 100 440" aria-hidden="true">
         <defs>
           <linearGradient id="yut-back-${index}" x1="0" x2="1">
-            <stop offset="0" stop-color="#7a5033" /><stop offset="0.5" stop-color="#4e321f" /><stop offset="1" stop-color="#6b4530" />
+            <stop offset="0" stop-color="#4a3120" /><stop offset="0.18" stop-color="#6d4a2e" /><stop offset="0.42" stop-color="#9a6b43" />
+            <stop offset="0.55" stop-color="#a5764c" /><stop offset="0.72" stop-color="#7d5535" /><stop offset="1" stop-color="#3f2a1a" />
           </linearGradient>
+          <clipPath id="yut-clip-${index}"><path d="${STICK_PATH}" /></clipPath>
         </defs>
-        <path d="${STICK_PATH}" fill="url(#yut-back-${index})" stroke="#3e2617" stroke-width="2" />
-        <g stroke="rgba(0,0,0,0.22)" stroke-width="3" fill="none">
-          <path d="M12 120 Q50 108 88 120" /><path d="M8 200 Q50 190 92 200" /><path d="M8 280 Q50 292 92 280" /><path d="M14 350 Q50 340 86 350" />
+        <path d="${STICK_PATH}" fill="url(#yut-back-${index})" stroke="#2f1f12" stroke-width="2" />
+        <g clip-path="url(#yut-clip-${index})">
+          <g stroke="rgba(35,20,8,0.38)" stroke-width="2" fill="none">${backGrain(index)}</g>
+          <g stroke="rgba(255,226,180,0.16)" stroke-width="1.5" fill="none">${backHighlights(index)}</g>
+          ${backKnot(index)}
         </g>
         ${marker}
       </svg>
     </div>`;
+}
+
+/** 뒷면 나뭇결: 살짝 휘어진 가로 줄을 촘촘히 그린다 (막대마다 조금씩 다르게) */
+function backGrain(index) {
+  const lines = [];
+  for (let y = 34; y <= 410; y += 17) {
+    const bend = ((y * 7 + index * 13) % 9) - 4;
+    const shift = ((y * 3 + index * 5) % 7) - 3;
+    lines.push(`<path d="M-4 ${y} Q 50 ${y + bend} 104 ${y + shift}" />`);
+  }
+  return lines.join('');
+}
+
+/** 둥근 등에 비치는 옅은 광택 줄 */
+function backHighlights(index) {
+  const offset = (index % 2) * 6;
+  return `<path d="M${46 + offset} 20 Q ${52 + offset} 220 ${47 + offset} 420" /><path d="M${58 + offset} 40 Q ${62 + offset} 220 ${57 + offset} 400" />`;
+}
+
+/** 작은 옹이 하나 */
+function backKnot(index) {
+  const y = 150 + ((index * 97) % 160);
+  const x = 38 + ((index * 31) % 22);
+  return `<ellipse cx="${x}" cy="${y}" rx="9" ry="5" fill="rgba(45,26,12,0.45)" /><ellipse cx="${x}" cy="${y}" rx="4.5" ry="2.4" fill="rgba(120,80,45,0.6)" />`;
 }
 
 /** "3개 앞면 · 3칸 이동" 같은 결과 설명 */
