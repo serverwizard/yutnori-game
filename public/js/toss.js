@@ -34,13 +34,13 @@ function sleep(ms) {
 
 // ---------------------------------------------------------------------------
 // 윷가락 그림: 통나무를 반으로 쪼갠 반원통형 막대 (삽화 느낌의 굵은 외곽선)
-//  - 앞면(배): 평평한 연한 크림색 단면
+//  - 앞면(배): 평평한 단면, 짙은 갈색으로 가득 채운다
 //  - 뒷면(등): 둥근 황갈색 껍질 쪽, X 표시 3개, 아래 끝에 반원 단면이 살짝 보인다
 // ---------------------------------------------------------------------------
 
 /** 위아래가 살짝 둥근 막대 몸통 (viewBox 0 0 100 440) */
 const STICK_BODY = 'M16 10 H84 Q94 10 94 20 V418 Q94 430 84 430 H16 Q6 430 6 418 V20 Q6 10 16 10 Z';
-const OUTLINE_COLOR = '#4b311a';
+const OUTLINE_COLOR = '#33200f';
 const OUTLINE_WIDTH = 4;
 const MARK_ROWS = [130, 220, 310];
 const MARK_HALF = 15;
@@ -56,11 +56,11 @@ function stickMarkup(index) {
       <svg class="face front" viewBox="0 0 100 440" aria-hidden="true">
         <defs>
           <linearGradient id="yut-front-${index}" x1="0" x2="1">
-            <stop offset="0" stop-color="#e6d6ae" /><stop offset="0.5" stop-color="#f4eacf" /><stop offset="1" stop-color="#e2d0a6" />
+            <stop offset="0" stop-color="#4e3119" /><stop offset="0.5" stop-color="#6b4526" /><stop offset="1" stop-color="#4a2e17" />
           </linearGradient>
         </defs>
         <path d="${STICK_BODY}" fill="url(#yut-front-${index})" stroke="${OUTLINE_COLOR}" stroke-width="${OUTLINE_WIDTH}" stroke-linejoin="round" />
-        <g stroke="#cdb98a" stroke-width="2" stroke-linecap="round" opacity="0.8">
+        <g stroke="rgba(255,220,180,0.16)" stroke-width="2" stroke-linecap="round">
           <path d="M30 60 Q28 220 31 380" /><path d="M50 40 Q53 220 49 400" /><path d="M70 70 Q72 220 69 370" />
         </g>
         ${marker}
@@ -79,7 +79,7 @@ function stickMarkup(index) {
           <path d="M92 10 V430" stroke="rgba(60,35,12,0.22)" stroke-width="10" />
           <path d="M40 30 Q44 220 38 410" stroke="rgba(255,240,210,0.28)" stroke-width="6" stroke-linecap="round" fill="none" />
           <!-- 아래 끝에 살짝 보이는 반원 단면 -->
-          <path d="M6 404 Q50 440 94 404 V430 H6 Z" fill="#efe2bf" stroke="${OUTLINE_COLOR}" stroke-width="${OUTLINE_WIDTH}" />
+          <path d="M6 404 Q50 440 94 404 V430 H6 Z" fill="#5e3b1f" stroke="${OUTLINE_COLOR}" stroke-width="${OUTLINE_WIDTH}" />
         </g>
         <g stroke="#5a3a1c" stroke-width="7" stroke-linecap="round" fill="none">${crosses}</g>
         ${marker}
