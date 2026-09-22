@@ -3,36 +3,38 @@
  *  - 팀·차례·설정은 이 기기의 localStorage 에만 저장한다. 반마다 기기 1대를 쓰므로 반끼리 자연스럽게 격리된다.
  *  - 서버 통신이 없어 한 번 열어 두면 네트워크가 끊겨도 계속 던질 수 있다.
  */
-import { judgeToss, tossSticks, TOSS_RESULTS, STICK_COUNT } from './toss-rules.js';
+import { judgeToss, tossSticks, STICK_COUNT } from './toss-rules.js';
 import { SoundBox } from './sound.js';
 
 const STORAGE_KEY = 'yut.toss.v1';
 const SHAKE_RATTLE_MS = 110;
 const ROLL_MS = 900;
 const LAND_GAP_MS = 140;
-const RESULT_HOLD_MS = 700;
+const RESULT_HOLD_MS = 600;
 const MO_SHAKE_MS = 700;
 const CONFETTI_MS = 4000;
 const MEMBER_MAX_LENGTH = 10;
 const MEMBERS_MAX = 40;
 const TEAM_NAME_MAX_LENGTH = 10;
-/** 뒷도(백도)는 항상 적용한다: ★ 표시 가락 하나만 배가 위로 오면 뒤로 한 칸 */
+/** 뒷도(빽도)는 항상 적용한다: ● 표시 막대 하나만 앞면이면 뒤로 한 칸 */
 const BACKDO_ENABLED = true;
+const MARKED_STICK_INDEX = 0;
+const BODY_CLASS = 'toss-mode';
 
 const TEAM_PRESETS = [
-  { name: '호랑이팀', emoji: '🐯', color: '#ff6b6b' },
-  { name: '토끼팀', emoji: '🐰', color: '#4dabf7' },
-  { name: '거북이팀', emoji: '🐢', color: '#51cf66' },
-  { name: '용팀', emoji: '🐲', color: '#fcc419' },
+  { name: '호랑이팀', emoji: '🐯', color: '#c62828' },
+  { name: '토끼팀', emoji: '🐰', color: '#1565c0' },
+  { name: '거북이팀', emoji: '🐢', color: '#2e7d32' },
+  { name: '용팀', emoji: '🐲', color: '#ef6c00' },
 ];
 
 const MESSAGES = {
   DO: ['한 칸 살짝~ 🐾', '조심조심 한 걸음!', '작지만 소중한 한 칸 🌱', '도도한 한 칸 💃'],
   GAE: ['두 칸 멍멍 🐶', '두 걸음 폴짝!', '안정적인 두 칸 👍', '개운하게 두 칸!'],
   GEOL: ['세 칸 성큼성큼 🚶', '좋아요, 세 칸!', '씩씩하게 세 칸 💪', '걸음도 가볍게 세 칸 🎈'],
-  YUT: ['네 칸 + 한 번 더! 🎉', '윷이다! 다시 던져요 ✨', '대단해요, 한 번 더! 🙌', '윷! 친구들 박수! 👏'],
-  MO: ['다섯 칸 + 한 번 더! 🏆', '모다 모! 최고의 던지기 🎆', '전설의 다섯 칸! 🌟', '모! 교실이 떠나가요! 📣'],
-  BACKDO: ['뒤로 한 칸 🙈', '어라? 한 칸 뒤로~ 🔙', '괜찬아요, 다음에 만회! 💫', '뒷걸음질 한 칸 🦀'],
+  YUT: ['윷이다! 다시 던져요 ✨', '대단해요, 한 번 더! 🙌', '윷! 친구들 박수! 👏'],
+  MO: ['모다 모! 최고의 던지기 🎆', '전설의 다섯 칸! 🌟', '모! 교실이 떠나가요! 📣'],
+  BACKDO: ['어라? 한 칸 뒤로~ 🔙', '괜찮아요, 다음에 만회! 💫', '뒷걸음질 한 칸 🦀'],
 };
 
 function esc(value) {
@@ -41,7 +43,7 @@ function esc(value) {
 
 function teamStyle(color) {
   const safe = esc(color);
-  return `style="--team-color:${safe};--team-tint:${safe}1a;--team-soft:${safe}66"`;
+  return `style="--team-color:${safe};--team-tint:${safe}14;--team-soft:${safe}55"`;
 }
 
 function pick(list) {
@@ -50,6 +52,48 @@ function pick(list) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ---------------------------------------------------------------------------
+// 윷가락 그림 (끝이 뾰족한 타원, 앞면은 X 표시, 뒷면은 진한 나무색, 표시 막대는 붉은 점)
+// ---------------------------------------------------------------------------
+
+const STICK_PATH = 'M50 6 C 84 40, 96 150, 96 220 C 96 290, 84 400, 50 434 C 16 400, 4 290, 4 220 C 4 150, 16 40, 50 6 Z';
+const MARK_ROWS = [118, 190, 262, 334];
+const MARK_HALF = 14;
+
+function stickMarkup(index) {
+  const marker =
+    index === MARKED_STICK_INDEX ? '<circle cx="50" cy="44" r="17" fill="#f3c9c9" /><circle cx="50" cy="44" r="10" fill="#d32f2f" />' : '';
+  const crosses = MARK_ROWS.map(
+    (y) => `<path d="M36 ${y - MARK_HALF} L64 ${y + MARK_HALF} M64 ${y - MARK_HALF} L36 ${y + MARK_HALF}" />`,
+  ).join('');
+  return `
+    <div class="yut-stick is-flat" data-stick="${index}">
+      <svg class="face front" viewBox="0 0 100 440" aria-hidden="true">
+        <defs>
+          <linearGradient id="yut-front-${index}" x1="0" x2="1">
+            <stop offset="0" stop-color="#efe0be" /><stop offset="0.45" stop-color="#f8eed6" /><stop offset="1" stop-color="#e9d7ae" />
+          </linearGradient>
+        </defs>
+        <path d="${STICK_PATH}" fill="url(#yut-front-${index})" stroke="#d9c69c" stroke-width="2" />
+        <g stroke="#d8c59a" stroke-width="1.5" opacity="0.7"><path d="M32 50 L30 390" /><path d="M50 30 L50 410" /><path d="M68 50 L70 390" /></g>
+        <g stroke="#5b3d26" stroke-width="6" stroke-linecap="round" fill="none">${crosses}</g>
+        ${marker}
+      </svg>
+      <svg class="face back" viewBox="0 0 100 440" aria-hidden="true">
+        <defs>
+          <linearGradient id="yut-back-${index}" x1="0" x2="1">
+            <stop offset="0" stop-color="#7a5033" /><stop offset="0.5" stop-color="#4e321f" /><stop offset="1" stop-color="#6b4530" />
+          </linearGradient>
+        </defs>
+        <path d="${STICK_PATH}" fill="url(#yut-back-${index})" stroke="#3e2617" stroke-width="2" />
+        <g stroke="rgba(0,0,0,0.22)" stroke-width="3" fill="none">
+          <path d="M12 120 Q50 108 88 120" /><path d="M8 200 Q50 190 92 200" /><path d="M8 280 Q50 292 92 280" /><path d="M14 350 Q50 340 86 350" />
+        </g>
+        ${marker}
+      </svg>
+    </div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -115,6 +159,15 @@ function currentMember(state, teamIndex) {
   return members[state.turn.cursors[teamIndex] % members.length];
 }
 
+/** "3개 앞면 · 3칸 이동" 같은 결과 설명 */
+function describeOutcome(result, flats) {
+  if (result.key === 'BACKDO') {
+    return '표시 막대만 앞면 · 뒤로 1칸';
+  }
+  const fronts = flats.filter(Boolean).length;
+  return `${fronts}개 앞면 · ${result.steps}칸 이동${result.again ? ' · 한 번 더!' : ''}`;
+}
+
 // ---------------------------------------------------------------------------
 // 윷 던지기 화면
 // ---------------------------------------------------------------------------
@@ -129,39 +182,45 @@ export function mountTossPage(container, { onLeave }) {
   const sound = new SoundBox(state.settings.sound);
   const previousTitle = document.title;
   document.title = '윷 던지기';
+  document.body.classList.add(BODY_CLASS);
 
   container.innerHTML = `
     <div class="toss-page">
-      <header class="toss-header">
-        <button class="btn btn-ghost btn-sm" data-t="leave">‹ 시작 화면</button>
-        <h1>🥢 윷 던지기</h1>
+      <div class="toss-toolbar">
+        <button class="tbtn" data-t="leave">‹ 시작 화면</button>
         <div class="row">
-          <button class="btn btn-sm" data-t="sound" aria-label="효과음"></button>
-          <button class="btn btn-sm" data-t="settings">⚙️ 설정</button>
+          <button class="tbtn" data-t="sound" aria-label="효과음"></button>
+          <button class="tbtn" data-t="settings">⚙️ 설정</button>
         </div>
+      </div>
+      <header class="toss-title">
+        <h1>🪵 윷 던지기</h1>
+        <p>막대가 없어도 여기서 바로 던져 보세요</p>
       </header>
       <section class="toss-turn" data-r="turn"></section>
-      <section class="toss-stage" data-r="stage">
-        <div class="sticks">${Array.from({ length: STICK_COUNT }, () => '<div class="stick"><span class="stick-face"></span></div>').join('')}</div>
-        <div class="toss-result-big" data-r="result"></div>
-        <div class="toss-message" data-r="message">윷가락을 꾹 눌러서 흔들어 봐요!</div>
-        <div class="muted toss-caption">★ 가락 하나만 배가 위로 오면 뒷도!</div>
-      </section>
-      <section class="toss-actions">
-        <button class="btn hold-btn" data-t="throw">🥢 꾹 눌러 흔들고, 놓으면 던져요!</button>
-        <div class="row" style="justify-content:center">
-          <button class="btn btn-sm" data-t="caught">😈 잡았다! 한 번 더</button>
-          <button class="btn btn-sm" data-t="skip">⏭ 차례 넘기기</button>
+      <section class="yut-card" data-r="stage">
+        <div class="yut-sticks">${Array.from({ length: STICK_COUNT }, (_, i) => stickMarkup(i)).join('')}</div>
+        <p class="yut-caption"><span class="dot"></span> 표시가 있는 막대만 앞면이면 뒷도(빽도)예요</p>
+        <button class="throw-btn" data-t="throw">윷 던지기</button>
+        <div class="toss-outcome">
+          <div class="outcome-name" data-r="result"></div>
+          <div class="outcome-sub" data-r="sub">버튼을 꾹 눌러 흔들다가 놓으면 던져요</div>
+          <div class="outcome-msg" data-r="message"></div>
         </div>
       </section>
+      <div class="toss-secondary">
+        <button class="tbtn" data-t="caught">😈 잡았다! 한 번 더</button>
+        <button class="tbtn" data-t="skip">⏭ 차례 넘기기</button>
+      </div>
       <div class="modal hidden" data-r="settings"></div>
     </div>`;
 
   const els = {
     turn: container.querySelector('[data-r="turn"]'),
     stage: container.querySelector('[data-r="stage"]'),
-    sticks: [...container.querySelectorAll('.toss-stage .stick')],
+    sticks: [...container.querySelectorAll('.yut-stick')],
     result: container.querySelector('[data-r="result"]'),
+    sub: container.querySelector('[data-r="sub"]'),
     message: container.querySelector('[data-r="message"]'),
     throwBtn: container.querySelector('[data-t="throw"]'),
     caughtBtn: container.querySelector('[data-t="caught"]'),
@@ -184,18 +243,14 @@ export function mountTossPage(container, { onLeave }) {
       <div class="team-chips">
         ${teams
           .map(
-            (t) =>
-              `<button class="team-chip ${t.index === team.index ? 'active' : ''}" ${teamStyle(t.color)} data-t="team" data-i="${t.index}">${t.emoji} ${esc(t.name)}</button>`,
+            (t) => `
+          <button class="team-chip ${t.index === team.index ? 'active' : ''}" ${teamStyle(t.color)} data-t="team" data-i="${t.index}">
+            ${t.emoji} ${esc(t.name)}${t.index === team.index && state.pendingExtra ? '<span class="badge">한 번 더!</span>' : ''}
+          </button>`,
           )
           .join('')}
       </div>
-      <div class="now-throwing" ${teamStyle(team.color)}>
-        <span class="muted-light">지금 던질 팀</span>
-        <b>${team.emoji} ${esc(team.name)}</b>
-        ${member ? `<span class="member">· <b>${esc(member)}</b> 친구</span>` : ''}
-        ${state.pendingExtra ? '<span class="badge">한 번 더!</span>' : ''}
-      </div>`;
-    els.result.style.setProperty('--team-color', team.color);
+      <p class="turn-hint">지금 던질 팀 · <b ${teamStyle(team.color)}>${team.emoji} ${esc(team.name)}</b>${member ? ` · <b>${esc(member)}</b> 친구` : ''}</p>`;
     els.caughtBtn.disabled = !(state.lastThrow && state.lastThrow.advanced);
   }
 
@@ -206,15 +261,13 @@ export function mountTossPage(container, { onLeave }) {
   function renderAll() {
     renderTurn();
     renderSound();
-    resetSticks();
   }
 
-  function resetSticks() {
+  function resetStickFaces() {
     for (const stick of els.sticks) {
-      stick.className = 'stick';
+      stick.classList.remove('is-round', 'landed');
+      stick.classList.add('is-flat');
     }
-    // 뒷도 표시 가락은 항상 첫 번째
-    els.sticks[0].classList.add('marked');
   }
 
   // ---- 차례 -----------------------------------------------------------------
@@ -262,7 +315,7 @@ export function mountTossPage(container, { onLeave }) {
     sound.unlock();
     els.stage.classList.add('shaking');
     els.throwBtn.classList.add('pressed');
-    els.message.textContent = '흔들흔들… 놓으면 던져요!';
+    els.sub.textContent = '흔들흔들… 놓으면 던져요';
     rattleTimer = setInterval(() => sound.rattle(), SHAKE_RATTLE_MS);
     sound.rattle();
   }
@@ -288,22 +341,26 @@ export function mountTossPage(container, { onLeave }) {
 
     els.result.textContent = '';
     els.result.classList.remove('pop');
+    els.sub.textContent = '';
     els.message.textContent = '';
-    resetSticks();
+    resetStickFaces();
     els.stage.classList.add('rolling');
     sound.whoosh();
     await sleep(ROLL_MS);
     els.stage.classList.remove('rolling');
 
     for (let i = 0; i < els.sticks.length; i += 1) {
-      els.sticks[i].classList.add(flats[i] ? 'flat' : 'round', 'landed');
+      els.sticks[i].classList.remove('is-flat', 'is-round');
+      els.sticks[i].classList.add(flats[i] ? 'is-flat' : 'is-round', 'landed');
       sound.clack();
       await sleep(LAND_GAP_MS);
     }
     await sleep(200);
 
-    els.result.textContent = `${result.name}!`;
+    els.result.textContent = result.name;
+    els.result.style.color = team.color;
     els.result.classList.add('pop');
+    els.sub.textContent = describeOutcome(result, flats);
     els.message.textContent = `${team.emoji} ${pick(MESSAGES[result.key])}`;
     sound.result(result.key);
     if (result.again) {
@@ -373,7 +430,7 @@ export function mountTossPage(container, { onLeave }) {
           </div>`,
           )
           .join('')}
-        <div class="setting-row"><div class="label">뒷도(백도)<small>★ 표시 가락 하나만 배가 위면 뒤로 1칸</small></div><span class="chip">항상 켜짐</span></div>
+        <div class="setting-row"><div class="label">뒷도(빽도)<small>● 표시 막대만 앞면이면 뒤로 1칸</small></div><span class="chip">항상 켜짐</span></div>
         <div class="setting-row"><div class="label">효과음</div>${seg('sound', [{ value: false, label: '끄기' }, { value: true, label: '켜기' }], draft.sound)}</div>
         <div class="row" style="margin-top:14px">
           <button class="btn btn-primary grow" data-t="settings-save">저장</button>
@@ -409,7 +466,8 @@ export function mountTossPage(container, { onLeave }) {
     state.pendingExtra = false;
     state.lastThrow = null;
     els.result.textContent = '';
-    els.message.textContent = '새로 시작해요! 윷가락을 꾹 눌러 봐요.';
+    els.sub.textContent = '새로 시작해요! 버튼을 꾹 눌러 봐요';
+    els.message.textContent = '';
     closeSettings();
     renderAll();
     saveState(state);
@@ -532,7 +590,7 @@ export function mountTossPage(container, { onLeave }) {
       document.removeEventListener('keydown', onKeyDown);
       container.removeEventListener('click', onClick);
       container.removeEventListener('input', onInput);
-      document.body.classList.remove('mo-shake');
+      document.body.classList.remove('mo-shake', BODY_CLASS);
       document.title = previousTitle;
       container.innerHTML = '';
     },
