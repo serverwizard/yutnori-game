@@ -33,73 +33,58 @@ function sleep(ms) {
 }
 
 // ---------------------------------------------------------------------------
-// 윷가락 그림 (끝이 뾰족한 타원, 앞면은 X 표시, 뒷면은 진한 나무색, 표시 막대는 붉은 점)
+// 윷가락 그림: 통나무를 반으로 쪼갠 반원통형 막대 (삽화 느낌의 굵은 외곽선)
+//  - 앞면(배): 평평한 연한 크림색 단면
+//  - 뒷면(등): 둥근 황갈색 껍질 쪽, X 표시 3개, 아래 끝에 반원 단면이 살짝 보인다
 // ---------------------------------------------------------------------------
 
-const STICK_PATH = 'M50 6 C 84 40, 96 150, 96 220 C 96 290, 84 400, 50 434 C 16 400, 4 290, 4 220 C 4 150, 16 40, 50 6 Z';
-const MARK_ROWS = [118, 190, 262, 334];
-const MARK_HALF = 14;
+/** 위아래가 살짝 둥근 막대 몸통 (viewBox 0 0 100 440) */
+const STICK_BODY = 'M16 10 H84 Q94 10 94 20 V418 Q94 430 84 430 H16 Q6 430 6 418 V20 Q6 10 16 10 Z';
+const OUTLINE_COLOR = '#4b311a';
+const OUTLINE_WIDTH = 4;
+const MARK_ROWS = [130, 220, 310];
+const MARK_HALF = 15;
 
 function stickMarkup(index) {
   const marker =
-    index === MARKED_STICK_INDEX ? '<circle cx="50" cy="44" r="17" fill="#f3c9c9" /><circle cx="50" cy="44" r="10" fill="#d32f2f" />' : '';
+    index === MARKED_STICK_INDEX ? '<circle cx="50" cy="52" r="16" fill="#f3c9c9" /><circle cx="50" cy="52" r="9" fill="#d32f2f" />' : '';
   const crosses = MARK_ROWS.map(
-    (y) => `<path d="M36 ${y - MARK_HALF} L64 ${y + MARK_HALF} M64 ${y - MARK_HALF} L36 ${y + MARK_HALF}" />`,
+    (y) => `<path d="M${50 - MARK_HALF} ${y - MARK_HALF} L${50 + MARK_HALF} ${y + MARK_HALF} M${50 + MARK_HALF} ${y - MARK_HALF} L${50 - MARK_HALF} ${y + MARK_HALF}" />`,
   ).join('');
   return `
     <div class="yut-stick is-flat" data-stick="${index}">
       <svg class="face front" viewBox="0 0 100 440" aria-hidden="true">
         <defs>
           <linearGradient id="yut-front-${index}" x1="0" x2="1">
-            <stop offset="0" stop-color="#efe0be" /><stop offset="0.45" stop-color="#f8eed6" /><stop offset="1" stop-color="#e9d7ae" />
+            <stop offset="0" stop-color="#e6d6ae" /><stop offset="0.5" stop-color="#f4eacf" /><stop offset="1" stop-color="#e2d0a6" />
           </linearGradient>
         </defs>
-        <path d="${STICK_PATH}" fill="url(#yut-front-${index})" stroke="#d9c69c" stroke-width="2" />
-        <g stroke="#d8c59a" stroke-width="1.5" opacity="0.7"><path d="M32 50 L30 390" /><path d="M50 30 L50 410" /><path d="M68 50 L70 390" /></g>
-        <g stroke="#5b3d26" stroke-width="6" stroke-linecap="round" fill="none">${crosses}</g>
+        <path d="${STICK_BODY}" fill="url(#yut-front-${index})" stroke="${OUTLINE_COLOR}" stroke-width="${OUTLINE_WIDTH}" stroke-linejoin="round" />
+        <g stroke="#cdb98a" stroke-width="2" stroke-linecap="round" opacity="0.8">
+          <path d="M30 60 Q28 220 31 380" /><path d="M50 40 Q53 220 49 400" /><path d="M70 70 Q72 220 69 370" />
+        </g>
         ${marker}
       </svg>
       <svg class="face back" viewBox="0 0 100 440" aria-hidden="true">
         <defs>
           <linearGradient id="yut-back-${index}" x1="0" x2="1">
-            <stop offset="0" stop-color="#4a3120" /><stop offset="0.18" stop-color="#6d4a2e" /><stop offset="0.42" stop-color="#9a6b43" />
-            <stop offset="0.55" stop-color="#a5764c" /><stop offset="0.72" stop-color="#7d5535" /><stop offset="1" stop-color="#3f2a1a" />
+            <stop offset="0" stop-color="#a47a4d" /><stop offset="0.35" stop-color="#cba175" /><stop offset="0.55" stop-color="#d6b088" />
+            <stop offset="0.8" stop-color="#b98c5c" /><stop offset="1" stop-color="#93693f" />
           </linearGradient>
-          <clipPath id="yut-clip-${index}"><path d="${STICK_PATH}" /></clipPath>
+          <clipPath id="yut-clip-${index}"><path d="${STICK_BODY}" /></clipPath>
         </defs>
-        <path d="${STICK_PATH}" fill="url(#yut-back-${index})" stroke="#2f1f12" stroke-width="2" />
+        <path d="${STICK_BODY}" fill="url(#yut-back-${index})" stroke="${OUTLINE_COLOR}" stroke-width="${OUTLINE_WIDTH}" stroke-linejoin="round" />
         <g clip-path="url(#yut-clip-${index})">
-          <g stroke="rgba(35,20,8,0.38)" stroke-width="2" fill="none">${backGrain(index)}</g>
-          <g stroke="rgba(255,226,180,0.16)" stroke-width="1.5" fill="none">${backHighlights(index)}</g>
-          ${backKnot(index)}
+          <path d="M8 10 V430" stroke="rgba(60,35,12,0.18)" stroke-width="10" />
+          <path d="M92 10 V430" stroke="rgba(60,35,12,0.22)" stroke-width="10" />
+          <path d="M40 30 Q44 220 38 410" stroke="rgba(255,240,210,0.28)" stroke-width="6" stroke-linecap="round" fill="none" />
+          <!-- 아래 끝에 살짝 보이는 반원 단면 -->
+          <path d="M6 404 Q50 440 94 404 V430 H6 Z" fill="#efe2bf" stroke="${OUTLINE_COLOR}" stroke-width="${OUTLINE_WIDTH}" />
         </g>
+        <g stroke="#5a3a1c" stroke-width="7" stroke-linecap="round" fill="none">${crosses}</g>
         ${marker}
       </svg>
     </div>`;
-}
-
-/** 뒷면 나뭇결: 살짝 휘어진 가로 줄을 촘촘히 그린다 (막대마다 조금씩 다르게) */
-function backGrain(index) {
-  const lines = [];
-  for (let y = 34; y <= 410; y += 17) {
-    const bend = ((y * 7 + index * 13) % 9) - 4;
-    const shift = ((y * 3 + index * 5) % 7) - 3;
-    lines.push(`<path d="M-4 ${y} Q 50 ${y + bend} 104 ${y + shift}" />`);
-  }
-  return lines.join('');
-}
-
-/** 둥근 등에 비치는 옅은 광택 줄 */
-function backHighlights(index) {
-  const offset = (index % 2) * 6;
-  return `<path d="M${46 + offset} 20 Q ${52 + offset} 220 ${47 + offset} 420" /><path d="M${58 + offset} 40 Q ${62 + offset} 220 ${57 + offset} 400" />`;
-}
-
-/** 작은 옹이 하나 */
-function backKnot(index) {
-  const y = 150 + ((index * 97) % 160);
-  const x = 38 + ((index * 31) % 22);
-  return `<ellipse cx="${x}" cy="${y}" rx="9" ry="5" fill="rgba(45,26,12,0.45)" /><ellipse cx="${x}" cy="${y}" rx="4.5" ry="2.4" fill="rgba(120,80,45,0.6)" />`;
 }
 
 /** "3개 앞면 · 3칸 이동" 같은 결과 설명 */
