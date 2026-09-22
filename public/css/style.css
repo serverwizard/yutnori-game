@@ -1296,54 +1296,6 @@ input {
   transform: none;
 }
 
-.toss-board h2 {
-  margin-bottom: 10px;
-}
-
-.stat-row {
-  display: grid;
-  gap: 6px;
-}
-
-.stat {
-  display: grid;
-  grid-template-columns: 3.2em 1fr 2.5em;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-}
-
-.stat-count {
-  text-align: right;
-}
-
-.stat-bar {
-  height: 14px;
-  background: #f1f0f4;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.stat-bar i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #ffb266, var(--primary));
-  border-radius: 999px;
-  transition: width 0.4s ease;
-}
-
-.history {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-.history .chip {
-  border: 2px solid var(--team-color);
-  background: linear-gradient(var(--team-tint), var(--team-tint)) #fff;
-}
-
 .confetti-layer {
   position: fixed;
   inset: 0;

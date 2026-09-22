@@ -1,6 +1,6 @@
 /**
  * 윷 던지기 전용 모드 (실물 윷판·말과 함께 쓰는 디지털 윷가락).
- *  - 반(classId)마다 차례·설정·오늘의 기록을 이 기기의 localStorage 에 따로 저장한다.
+ *  - 반(classId)마다 차례·설정을 이 기기의 localStorage 에 따로 저장한다.
  *    같은 주소를 다른 반이 다른 기기에서 열어도 서로 섞이지 않고, 한 기기를 여러 반이 돌려 써도 반별로 분리된다.
  *  - 서버 통신이 없어 한 번 열어 두면 네트워크가 끊겨도 계속 던질 수 있다.
  */
@@ -8,8 +8,6 @@ import { judgeToss, tossSticks, TOSS_RESULTS, STICK_COUNT } from './toss-rules.j
 import { SoundBox } from './sound.js';
 
 const STORAGE_PREFIX = 'yut.toss.v1.';
-const HISTORY_LIMIT = 40;
-const RECENT_SHOWN = 14;
 const SHAKE_RATTLE_MS = 110;
 const ROLL_MS = 900;
 const LAND_GAP_MS = 140;
@@ -20,7 +18,6 @@ const MEMBER_MAX_LENGTH = 10;
 const MEMBERS_MAX = 40;
 const TEAM_NAME_MAX_LENGTH = 10;
 const CLASS_ID_PATTERN = /^[A-Za-z0-9가-힣_-]{1,20}$/;
-const RESULT_ORDER = ['DO', 'GAE', 'GEOL', 'YUT', 'MO', 'BACKDO'];
 
 const TEAM_PRESETS = [
   { name: '호랑이팀', emoji: '🐯', color: '#ff6b6b' },
@@ -76,7 +73,7 @@ export function renderClassPicker(grade) {
   return `
     <div class="landing">
       <p class="hero">🥢</p>
-      <h1 class="title">우리 반을 골라요<small>반마다 차례와 오늘의 기록이 따로 저장돼요</small></h1>
+      <h1 class="title">우리 반을 골라요<small>반마다 팀과 차례가 따로 저장돼요</small></h1>
       <section class="card">
         <div class="setting-row">
           <div class="label">학년</div>
@@ -102,10 +99,6 @@ export function renderClassPicker(grade) {
 // 상태 저장
 // ---------------------------------------------------------------------------
 
-function emptyStats() {
-  return Object.fromEntries(RESULT_ORDER.map((key) => [key, 0]));
-}
-
 function defaultState(classId) {
   return {
     classId,
@@ -119,9 +112,6 @@ function defaultState(classId) {
     turn: { teamIndex: 0, cursors: [0, 0, 0, 0] },
     pendingExtra: false,
     lastThrow: null,
-    history: [],
-    stats: emptyStats(),
-    teamLuck: [0, 0, 0, 0],
   };
 }
 
@@ -138,9 +128,6 @@ function loadState(classId) {
       classId,
       settings: { ...base.settings, ...(saved.settings ?? {}) },
       turn: { ...base.turn, ...(saved.turn ?? {}) },
-      stats: { ...base.stats, ...(saved.stats ?? {}) },
-      history: Array.isArray(saved.history) ? saved.history.slice(0, HISTORY_LIMIT) : [],
-      teamLuck: Array.isArray(saved.teamLuck) && saved.teamLuck.length === 4 ? saved.teamLuck : base.teamLuck,
     };
   } catch {
     return base;
@@ -149,7 +136,8 @@ function loadState(classId) {
 
 function saveState(state) {
   try {
-    localStorage.setItem(STORAGE_PREFIX + state.classId, JSON.stringify(state));
+    const { classId, settings, turn, pendingExtra, lastThrow } = state;
+    localStorage.setItem(STORAGE_PREFIX + classId, JSON.stringify({ classId, settings, turn, pendingExtra, lastThrow }));
   } catch {
     // 저장이 막혀도(사생활 보호 모드 등) 이 화면 안에서는 계속 동작한다
   }
@@ -213,11 +201,6 @@ export function mountTossPage(container, classId, { onLeave }) {
           <button class="btn btn-sm" data-t="skip">⏭ 차례 넘기기</button>
         </div>
       </section>
-      <section class="card toss-board">
-        <h2>📊 오늘의 기록</h2>
-        <div data-r="stats"></div>
-        <div class="history" data-r="history"></div>
-      </section>
       <div class="modal hidden" data-r="settings"></div>
     </div>`;
 
@@ -230,8 +213,6 @@ export function mountTossPage(container, classId, { onLeave }) {
     throwBtn: container.querySelector('[data-t="throw"]'),
     caughtBtn: container.querySelector('[data-t="caught"]'),
     soundBtn: container.querySelector('[data-t="sound"]'),
-    stats: container.querySelector('[data-r="stats"]'),
-    history: container.querySelector('[data-r="history"]'),
     settings: container.querySelector('[data-r="settings"]'),
   };
 
@@ -265,40 +246,12 @@ export function mountTossPage(container, classId, { onLeave }) {
     els.caughtBtn.disabled = !(state.lastThrow && state.lastThrow.advanced);
   }
 
-  function renderStats() {
-    const total = RESULT_ORDER.reduce((sum, key) => sum + (state.stats[key] ?? 0), 0);
-    const max = Math.max(1, ...RESULT_ORDER.map((key) => state.stats[key] ?? 0));
-    const keys = RESULT_ORDER.filter((key) => key !== 'BACKDO' || state.settings.backdo || state.stats.BACKDO > 0);
-    const teams = teamsOf(state);
-    const luckiest = teams.reduce((best, t) => (state.teamLuck[t.index] > (best ? state.teamLuck[best.index] : 0) ? t : best), null);
-    els.stats.innerHTML = `
-      <div class="stat-row">
-        ${keys
-          .map((key) => {
-            const count = state.stats[key] ?? 0;
-            return `<div class="stat"><div class="stat-name">${TOSS_RESULTS[key].name}</div><div class="stat-bar"><i style="width:${Math.round((count / max) * 100)}%"></i></div><div class="stat-count">${count}</div></div>`;
-          })
-          .join('')}
-      </div>
-      <p class="muted" style="margin:10px 0 0">
-        모두 <b>${total}</b>번 던졌어요${luckiest ? ` · 행운의 팀 ${luckiest.emoji} ${esc(luckiest.name)} (윷·모 ${state.teamLuck[luckiest.index]}번)` : ''}
-      </p>`;
-    els.history.innerHTML = state.history
-      .slice(0, RECENT_SHOWN)
-      .map((entry) => {
-        const team = teams[entry.teamIndex] ?? teams[0];
-        return `<span class="chip" ${teamStyle(team.color)}>${team.emoji} ${TOSS_RESULTS[entry.key]?.name ?? '?'}</span>`;
-      })
-      .join('');
-  }
-
   function renderSound() {
     els.soundBtn.textContent = state.settings.sound ? '🔊 소리 켬' : '🔇 소리 끔';
   }
 
   function renderAll() {
     renderTurn();
-    renderStats();
     renderSound();
     resetSticks();
   }
@@ -323,12 +276,6 @@ export function mountTossPage(container, classId, { onLeave }) {
 
   function applyResult(result, flats) {
     const teamIndex = state.turn.teamIndex;
-    state.history.unshift({ teamIndex, key: result.key, at: Date.now() });
-    state.history.length = Math.min(state.history.length, HISTORY_LIMIT);
-    state.stats[result.key] = (state.stats[result.key] ?? 0) + 1;
-    if (result.again) {
-      state.teamLuck[teamIndex] += 1;
-    }
     state.lastThrow = { teamIndex, member: currentMember(state, teamIndex), key: result.key, flats, at: Date.now(), advanced: false };
     if (result.again) {
       state.pendingExtra = true;
@@ -417,7 +364,6 @@ export function mountTossPage(container, classId, { onLeave }) {
 
     applyResult(result, flats);
     renderTurn();
-    renderStats();
     saveState(state);
 
     await sleep(RESULT_HOLD_MS);
@@ -485,7 +431,7 @@ export function mountTossPage(container, classId, { onLeave }) {
           <button class="btn btn-primary grow" data-t="settings-save">저장</button>
           <button class="btn" data-t="settings-close">닫기</button>
         </div>
-        <p class="center" style="margin:12px 0 0"><button class="btn btn-ghost btn-sm" data-t="reset">🧹 오늘의 기록·차례 지우기</button></p>
+        <p class="center" style="margin:12px 0 0"><button class="btn btn-ghost btn-sm" data-t="reset">↩ 차례를 처음 팀부터 다시</button></p>
       </div>`;
   }
 
@@ -509,17 +455,11 @@ export function mountTossPage(container, classId, { onLeave }) {
     saveState(state);
   }
 
-  function resetRecords() {
-    if (!window.confirm(`${label}의 오늘 기록과 차례를 모두 지울까요?`)) {
-      return;
-    }
+  function resetTurn() {
     const fresh = defaultState(classId);
     state.turn = fresh.turn;
     state.pendingExtra = false;
     state.lastThrow = null;
-    state.history = [];
-    state.stats = emptyStats();
-    state.teamLuck = [0, 0, 0, 0];
     els.result.textContent = '';
     els.message.textContent = '새로 시작해요! 윷가락을 꾹 눌러 봐요.';
     closeSettings();
@@ -590,7 +530,7 @@ export function mountTossPage(container, classId, { onLeave }) {
         saveSettings();
         break;
       case 'reset':
-        resetRecords();
+        resetTurn();
         break;
       case 'team':
         state.turn.teamIndex = Number(target.dataset.i);
