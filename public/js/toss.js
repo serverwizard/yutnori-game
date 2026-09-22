@@ -33,58 +33,82 @@ function sleep(ms) {
 }
 
 // ---------------------------------------------------------------------------
-// 윷가락 그림: 통나무를 반으로 쪼갠 반원통형 막대 (삽화 느낌의 굵은 외곽선)
-//  - 앞면(배): 평평한 단면, 짙은 갈색으로 가득 채운다
-//  - 뒷면(등): 둥근 황갈색 껍질 쪽, X 표시 3개, 아래 끝에 반원 단면이 살짝 보인다
+// 윷가락 그림: 통나무를 반으로 쪼갠 막대를 굵은 외곽선의 삽화 느낌으로 그린다
+//  - 앞면(배): 평평한 연한 크림색 단면, 옅은 나뭇결
+//  - 뒷면(등): 둥근 황갈색 껍질 쪽, 손으로 새긴 듯한 X 표시 3개, 아래 끝에 크림색 반원 단면
 // ---------------------------------------------------------------------------
 
-/** 위아래가 살짝 둥근 막대 몸통 (viewBox 0 0 100 440) */
-const STICK_BODY = 'M16 10 H84 Q94 10 94 20 V418 Q94 430 84 430 H16 Q6 430 6 418 V20 Q6 10 16 10 Z';
-const OUTLINE_COLOR = '#33200f';
-const OUTLINE_WIDTH = 4;
-const MARK_ROWS = [130, 220, 310];
+/** 살짝 둥근 막대 몸통 (viewBox 0 0 100 440) */
+const STICK_BODY = 'M22 8 H78 Q94 8 94 26 V414 Q94 432 78 432 H22 Q6 432 6 414 V26 Q6 8 22 8 Z';
+const OUTLINE_COLOR = '#5b3d22';
+const OUTLINE_WIDTH = 4.5;
+const MARK_ROWS = [128, 220, 312];
 const MARK_HALF = 15;
+/** 던져서 떨어진 뒤 막대가 비스듬히 놓이는 최대 각도·거리 */
+const TILT_MAX_DEG = 9;
+const DRIFT_MAX_PX = 8;
+
+/** 손으로 새긴 느낌이 나도록 X 획을 조금씩 비뚤게 그린다 */
+function carvedCross(y, seed) {
+  const j = (n) => ((seed * 31 + n * 17) % 7) - 3;
+  return (
+    `<path d="M${50 - MARK_HALF + j(1)} ${y - MARK_HALF + j(2)} Q ${50 + j(3)} ${y + j(4)} ${50 + MARK_HALF + j(5)} ${y + MARK_HALF + j(6)}" />` +
+    `<path d="M${50 + MARK_HALF + j(7)} ${y - MARK_HALF + j(8)} Q ${50 + j(9)} ${y + j(10)} ${50 - MARK_HALF + j(11)} ${y + MARK_HALF + j(12)}" />`
+  );
+}
 
 function stickMarkup(index) {
   const marker =
     index === MARKED_STICK_INDEX ? '<circle cx="50" cy="52" r="16" fill="#f3c9c9" /><circle cx="50" cy="52" r="9" fill="#d32f2f" />' : '';
-  const crosses = MARK_ROWS.map(
-    (y) => `<path d="M${50 - MARK_HALF} ${y - MARK_HALF} L${50 + MARK_HALF} ${y + MARK_HALF} M${50 + MARK_HALF} ${y - MARK_HALF} L${50 - MARK_HALF} ${y + MARK_HALF}" />`,
-  ).join('');
+  const crosses = MARK_ROWS.map((y, row) => carvedCross(y, index * 3 + row)).join('');
   return `
     <div class="yut-stick is-flat" data-stick="${index}">
       <svg class="face front" viewBox="0 0 100 440" aria-hidden="true">
         <defs>
           <linearGradient id="yut-front-${index}" x1="0" x2="1">
-            <stop offset="0" stop-color="#4e3119" /><stop offset="0.5" stop-color="#6b4526" /><stop offset="1" stop-color="#4a2e17" />
+            <stop offset="0" stop-color="#dfcda3" /><stop offset="0.4" stop-color="#efe3c1" /><stop offset="0.7" stop-color="#e9dbb5" /><stop offset="1" stop-color="#d6c397" />
           </linearGradient>
         </defs>
         <path d="${STICK_BODY}" fill="url(#yut-front-${index})" stroke="${OUTLINE_COLOR}" stroke-width="${OUTLINE_WIDTH}" stroke-linejoin="round" />
-        <g stroke="rgba(255,220,180,0.16)" stroke-width="2" stroke-linecap="round">
-          <path d="M30 60 Q28 220 31 380" /><path d="M50 40 Q53 220 49 400" /><path d="M70 70 Q72 220 69 370" />
+        <g stroke="#c9b487" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.9">
+          <path d="M28 70 Q26 220 30 380" /><path d="M46 40 Q50 220 45 405" /><path d="M64 90 Q67 220 63 360" /><path d="M78 60 Q80 200 77 330" />
         </g>
         ${marker}
       </svg>
       <svg class="face back" viewBox="0 0 100 440" aria-hidden="true">
         <defs>
           <linearGradient id="yut-back-${index}" x1="0" x2="1">
-            <stop offset="0" stop-color="#a47a4d" /><stop offset="0.35" stop-color="#cba175" /><stop offset="0.55" stop-color="#d6b088" />
-            <stop offset="0.8" stop-color="#b98c5c" /><stop offset="1" stop-color="#93693f" />
+            <stop offset="0" stop-color="#a98056" /><stop offset="0.3" stop-color="#cfa97d" /><stop offset="0.5" stop-color="#d9b88d" />
+            <stop offset="0.75" stop-color="#b98f61" /><stop offset="1" stop-color="#8f6a44" />
           </linearGradient>
           <clipPath id="yut-clip-${index}"><path d="${STICK_BODY}" /></clipPath>
         </defs>
         <path d="${STICK_BODY}" fill="url(#yut-back-${index})" stroke="${OUTLINE_COLOR}" stroke-width="${OUTLINE_WIDTH}" stroke-linejoin="round" />
         <g clip-path="url(#yut-clip-${index})">
-          <path d="M8 10 V430" stroke="rgba(60,35,12,0.18)" stroke-width="10" />
-          <path d="M92 10 V430" stroke="rgba(60,35,12,0.22)" stroke-width="10" />
-          <path d="M40 30 Q44 220 38 410" stroke="rgba(255,240,210,0.28)" stroke-width="6" stroke-linecap="round" fill="none" />
-          <!-- 아래 끝에 살짝 보이는 반원 단면 -->
-          <path d="M6 404 Q50 440 94 404 V430 H6 Z" fill="#5e3b1f" stroke="${OUTLINE_COLOR}" stroke-width="${OUTLINE_WIDTH}" />
+          <path d="M88 8 V432" stroke="rgba(70,40,15,0.22)" stroke-width="14" />
+          <path d="M36 20 Q40 220 34 420" stroke="rgba(255,240,215,0.30)" stroke-width="7" stroke-linecap="round" fill="none" />
+          <path d="M6 402 Q50 442 94 402 V432 H6 Z" fill="#eee1bf" stroke="${OUTLINE_COLOR}" stroke-width="${OUTLINE_WIDTH}" />
         </g>
-        <g stroke="#5a3a1c" stroke-width="7" stroke-linecap="round" fill="none">${crosses}</g>
+        <g stroke="#5a3a1e" stroke-width="6.5" stroke-linecap="round" fill="none">${crosses}</g>
         ${marker}
       </svg>
     </div>`;
+}
+
+/** 떨어진 막대가 그림처럼 조금씩 비스듬히 놓이도록 한다 */
+function scatterStick(stick) {
+  const tilt = (Math.random() * 2 - 1) * TILT_MAX_DEG;
+  const dx = (Math.random() * 2 - 1) * DRIFT_MAX_PX;
+  const dy = (Math.random() * 2 - 1) * DRIFT_MAX_PX;
+  stick.style.setProperty('--tilt', `${tilt.toFixed(1)}deg`);
+  stick.style.setProperty('--dx', `${dx.toFixed(1)}px`);
+  stick.style.setProperty('--dy', `${dy.toFixed(1)}px`);
+}
+
+function straightenStick(stick) {
+  stick.style.setProperty('--tilt', '0deg');
+  stick.style.setProperty('--dx', '0px');
+  stick.style.setProperty('--dy', '0px');
 }
 
 /** "3개 앞면 · 3칸 이동" 같은 결과 설명 */
@@ -147,6 +171,7 @@ export function mountTossPage(container, { onLeave }) {
     for (const stick of els.sticks) {
       stick.classList.remove('is-round', 'landed');
       stick.classList.add('is-flat');
+      straightenStick(stick);
     }
   }
 
@@ -187,6 +212,7 @@ export function mountTossPage(container, { onLeave }) {
 
     for (let i = 0; i < els.sticks.length; i += 1) {
       els.sticks[i].classList.remove('is-flat', 'is-round');
+      scatterStick(els.sticks[i]);
       els.sticks[i].classList.add(flats[i] ? 'is-flat' : 'is-round', 'landed');
       await sleep(LAND_GAP_MS);
     }

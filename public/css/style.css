@@ -1143,17 +1143,18 @@ body.toss-mode {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: clamp(10px, 3vw, 28px);
-  padding: 8px 0 0;
+  gap: clamp(14px, 4vw, 34px);
+  padding: 12px 0 8px;
   perspective: 900px;
 }
 
 .yut-stick {
   position: relative;
-  width: clamp(48px, 9vw, 96px);
+  width: clamp(52px, 10vw, 104px);
   aspect-ratio: 100 / 440;
   transform-style: preserve-3d;
-  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.18));
+  transform: rotate(var(--tilt, 0deg)) translate(var(--dx, 0px), var(--dy, 0px));
+  filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.22));
 }
 
 .yut-stick .face {
@@ -1256,7 +1257,7 @@ body.toss-mode {
     transform: translateY(-40px) scale(1.06);
   }
   100% {
-    transform: none;
+    transform: rotate(var(--tilt, 0deg)) translate(var(--dx, 0px), var(--dy, 0px));
   }
 }
 
