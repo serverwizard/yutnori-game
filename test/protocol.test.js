@@ -327,6 +327,9 @@ describe('HTTP', () => {
     assert.match(qr.headers.get('content-type'), /svg/);
     assert.match(await qr.text(), /^<svg/);
     assert.equal((await fetch(`${baseUrl}/qr/12.svg`)).status, 404);
+    const tossQr = await fetch(`${baseUrl}/qr/toss.svg`);
+    assert.equal(tossQr.status, 200);
+    assert.match(tossQr.headers.get('content-type'), /svg/);
     // 윷 던지기 전용 모드 (예전 반별 주소도 같은 화면으로 열린다)
     for (const path of ['/toss', '/toss/3-1']) {
       const response = await fetch(`${baseUrl}${path}`);

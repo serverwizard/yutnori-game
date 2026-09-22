@@ -146,6 +146,7 @@ export function mountTossPage(container, { onLeave }) {
     <div class="toss-page">
       <div class="toss-toolbar">
         <button class="tbtn" data-t="leave">‹ 시작 화면</button>
+        <button class="tbtn" data-t="qr">📱 QR 코드</button>
       </div>
       <header class="toss-title">
         <h1>🪵 윷 던지기</h1>
@@ -161,6 +162,14 @@ export function mountTossPage(container, { onLeave }) {
           <div class="outcome-msg" data-r="message"></div>
         </div>
       </section>
+      <div class="qr-overlay hidden" data-r="qr">
+        <div class="qr-card">
+          <h2>📱 카메라로 찍으면 바로 들어와요</h2>
+          <img src="/qr/toss.svg" alt="윷 던지기 화면으로 가는 QR 코드" />
+          <p class="qr-url" data-r="qr-url"></p>
+          <button class="tbtn" data-t="qr-close">닫기</button>
+        </div>
+      </div>
     </div>`;
 
   const els = {
@@ -170,7 +179,10 @@ export function mountTossPage(container, { onLeave }) {
     sub: container.querySelector('[data-r="sub"]'),
     message: container.querySelector('[data-r="message"]'),
     throwBtn: container.querySelector('[data-t="throw"]'),
+    qrOverlay: container.querySelector('[data-r="qr"]'),
+    qrUrl: container.querySelector('[data-r="qr-url"]'),
   };
+  els.qrUrl.textContent = `${location.origin}/toss`;
 
   let busy = false;
   let shaking = false;
@@ -277,22 +289,44 @@ export function mountTossPage(container, { onLeave }) {
     throwSticks();
   }
 
+  function isQrOpen() {
+    return !els.qrOverlay.classList.contains('hidden');
+  }
+
   function onKeyDown(event) {
+    if (event.code === 'Escape' && isQrOpen()) {
+      els.qrOverlay.classList.add('hidden');
+      return;
+    }
     if (event.code === 'Space' || event.code === 'Enter') {
       event.preventDefault();
-      if (!busy) {
+      if (!busy && !isQrOpen()) {
         throwSticks();
       }
     }
   }
 
   function onClick(event) {
+    if (event.target === els.qrOverlay) {
+      els.qrOverlay.classList.add('hidden');
+      return;
+    }
     const target = event.target.closest('[data-t]');
     if (!target) {
       return;
     }
-    if (target.dataset.t === 'leave') {
-      onLeave();
+    switch (target.dataset.t) {
+      case 'leave':
+        onLeave();
+        break;
+      case 'qr':
+        els.qrOverlay.classList.remove('hidden');
+        break;
+      case 'qr-close':
+        els.qrOverlay.classList.add('hidden');
+        break;
+      default:
+        break;
     }
   }
 

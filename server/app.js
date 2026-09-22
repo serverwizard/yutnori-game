@@ -126,6 +126,10 @@ async function handleHttp(req, res, baseUrlOf) {
     await sendQr(res, `${baseUrlOf(req)}/r/${qrMatch[1]}`);
     return;
   }
+  if (path === '/qr/toss.svg') {
+    await sendQr(res, `${baseUrlOf(req)}/toss`);
+    return;
+  }
   if (APP_ROUTES.some((route) => route.test(path))) {
     await sendFile(res, join(PUBLIC_DIR, 'index.html'), 'no-cache');
     return;
