@@ -327,6 +327,16 @@ describe('HTTP', () => {
     assert.match(qr.headers.get('content-type'), /svg/);
     assert.match(await qr.text(), /^<svg/);
     assert.equal((await fetch(`${baseUrl}/qr/12.svg`)).status, 404);
+    for (const path of ['/toss', '/toss/3-1', `/toss/${encodeURIComponent('별빛반')}`]) {
+      const response = await fetch(`${baseUrl}${path}`);
+      assert.equal(response.status, 200, path);
+      assert.match(response.headers.get('content-type'), /text\/html/);
+    }
+    const tossQr = await fetch(`${baseUrl}/qr/toss/${encodeURIComponent('3-1')}.svg`);
+    assert.equal(tossQr.status, 200);
+    assert.match(tossQr.headers.get('content-type'), /svg/);
+    assert.equal((await fetch(`${baseUrl}/qr/toss/${encodeURIComponent('너무긴반이름'.repeat(4))}.svg`)).status, 404);
+    assert.equal((await fetch(`${baseUrl}/qr/toss/${encodeURIComponent('a b')}.svg`)).status, 404);
     assert.equal((await fetch(`${baseUrl}/healthz`)).status, 200);
     assert.equal((await fetch(`${baseUrl}/server/game.js`)).status, 404);
   });

@@ -1079,3 +1079,361 @@ input {
     padding: 16px;
   }
 }
+
+/* ---------------------------------------------------------------- 윷 던지기 전용 모드 */
+
+.toss-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: grid;
+  gap: 14px;
+}
+
+.toss-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toss-header h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  flex: 1;
+  text-align: center;
+}
+
+.team-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.team-chip {
+  border: 3px solid var(--team-color);
+  background: linear-gradient(var(--team-tint), var(--team-tint)) #fff;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-weight: 800;
+  font-size: 1.05rem;
+  opacity: 0.55;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.team-chip.active {
+  opacity: 1;
+  box-shadow: 0 0 0 5px var(--team-soft);
+  transform: scale(1.06);
+}
+
+.now-throwing {
+  text-align: center;
+  background: var(--team-color);
+  color: #fff;
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-size: clamp(1.2rem, 3.5vw, 1.8rem);
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.now-throwing .muted-light {
+  font-size: 0.75em;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.now-throwing .member {
+  font-size: 0.85em;
+}
+
+.now-throwing .badge {
+  background: #fff;
+  color: var(--team-color);
+  border-radius: 999px;
+  padding: 2px 14px;
+  font-size: 0.8em;
+  animation: pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.toss-stage {
+  background: var(--board-wood);
+  border-radius: var(--radius);
+  padding: 24px 12px 20px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  perspective: 800px;
+  overflow: hidden;
+}
+
+.toss-stage .sticks {
+  height: clamp(170px, 32vh, 280px);
+  gap: clamp(10px, 3vw, 24px);
+}
+
+.toss-stage .stick {
+  width: clamp(44px, 9vw, 78px);
+  height: 100%;
+  border-radius: 32px;
+}
+
+.toss-stage .stick.flat .stick-face::before {
+  width: 5px;
+  top: 22px;
+  bottom: 22px;
+}
+
+.toss-stage .stick.marked::after {
+  font-size: 1.5rem;
+  bottom: 14px;
+}
+
+.shaking .stick {
+  animation: jitter 0.12s linear infinite;
+}
+
+.shaking .stick:nth-child(2) {
+  animation-delay: 0.03s;
+}
+
+.shaking .stick:nth-child(3) {
+  animation-delay: 0.06s;
+}
+
+.shaking .stick:nth-child(4) {
+  animation-delay: 0.09s;
+}
+
+@keyframes jitter {
+  0% {
+    transform: translate(0, 0) rotate(-3deg);
+  }
+  25% {
+    transform: translate(-5px, 4px) rotate(3deg);
+  }
+  50% {
+    transform: translate(4px, -5px) rotate(-2deg);
+  }
+  75% {
+    transform: translate(-3px, -3px) rotate(2deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0);
+  }
+}
+
+.stick.landed {
+  animation: land 0.4s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+
+@keyframes land {
+  0% {
+    transform: translateY(-40px) scale(1.06);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.toss-result-big {
+  font-size: clamp(3.5rem, 12vw, 8rem);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--team-color);
+  min-height: 1em;
+}
+
+.toss-result-big.pop {
+  animation: pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.toss-message {
+  font-size: clamp(1.1rem, 3vw, 1.7rem);
+  font-weight: 700;
+  min-height: 1.6em;
+}
+
+.toss-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.hold-btn {
+  width: 100%;
+  min-height: 96px;
+  font-size: clamp(1.25rem, 4vw, 2rem);
+  background: linear-gradient(180deg, #ff9a4d, var(--primary));
+  color: #fff;
+  box-shadow: 0 6px 0 #c95b1c;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.hold-btn.pressed {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #c95b1c;
+  filter: brightness(1.08);
+}
+
+.hold-btn:disabled {
+  opacity: 0.75;
+  transform: none;
+}
+
+.toss-board h2 {
+  margin-bottom: 10px;
+}
+
+.stat-row {
+  display: grid;
+  gap: 6px;
+}
+
+.stat {
+  display: grid;
+  grid-template-columns: 3.2em 1fr 2.5em;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.stat-count {
+  text-align: right;
+}
+
+.stat-bar {
+  height: 14px;
+  background: #f1f0f4;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.stat-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffb266, var(--primary));
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.history {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.history .chip {
+  border: 2px solid var(--team-color);
+  background: linear-gradient(var(--team-tint), var(--team-tint)) #fff;
+}
+
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 70;
+  overflow: hidden;
+}
+
+body.mo-shake {
+  animation: screen-shake 0.6s ease-in-out;
+}
+
+@keyframes screen-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translate(-6px, 4px);
+  }
+  40% {
+    transform: translate(6px, -4px);
+  }
+  60% {
+    transform: translate(-4px, -4px);
+  }
+  80% {
+    transform: translate(4px, 4px);
+  }
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 20, 10, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 60;
+  padding: 16px;
+  overflow: auto;
+}
+
+.modal-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 20px;
+  width: min(560px, 100%);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.team-setting {
+  border-left: 6px solid var(--team-color);
+  padding: 10px 12px;
+  margin: 8px 0;
+  background: linear-gradient(var(--team-tint), var(--team-tint)) #fff;
+  border-radius: 12px;
+}
+
+.team-setting .input {
+  min-height: 46px;
+  font-size: 1.05rem;
+}
+
+.team-setting textarea {
+  width: 100%;
+  min-height: 56px;
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.mini-qr {
+  width: 96px;
+  height: 96px;
+  border: 4px solid #fff;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.landing .card.toss-entry {
+  border-top-color: #51cf66;
+}

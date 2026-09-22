@@ -33,7 +33,9 @@ const CONTENT_TYPES = {
 const REVALIDATE_EXTENSIONS = new Set(['.html', '.js', '.css']);
 
 /** 클라이언트 라우터가 처리하는 경로. 모두 index.html 을 돌려준다. */
-const APP_ROUTES = [/^\/$/, /^\/host(\/\d{4})?$/, /^\/r\/\d{4}$/, /^\/join$/];
+const APP_ROUTES = [/^\/$/, /^\/host(\/\d{4})?$/, /^\/r\/\d{4}$/, /^\/join$/, /^\/toss(\/[^/]{1,80})?$/];
+/** 윷 던지기 전용 모드의 반 식별자 (예: 3-1, 별빛반) */
+const CLASS_ID_PATTERN = /^[A-Za-z0-9가-힣_-]{1,20}$/;
 
 /**
  * HTTP + WebSocket 서버를 만든다. listen 은 호출자가 한다.
@@ -126,11 +128,29 @@ async function handleHttp(req, res, baseUrlOf) {
     await sendQr(res, `${baseUrlOf(req)}/r/${qrMatch[1]}`);
     return;
   }
+  const tossQrMatch = path.match(/^\/qr\/toss\/([^/]{1,80})\.svg$/);
+  if (tossQrMatch) {
+    const classId = safeDecode(tossQrMatch[1]);
+    if (!classId || !CLASS_ID_PATTERN.test(classId)) {
+      sendText(res, 404, 'Not Found');
+      return;
+    }
+    await sendQr(res, `${baseUrlOf(req)}/toss/${encodeURIComponent(classId)}`);
+    return;
+  }
   if (APP_ROUTES.some((route) => route.test(path))) {
     await sendFile(res, join(PUBLIC_DIR, 'index.html'), 'no-cache');
     return;
   }
   await sendStatic(res, path);
+}
+
+function safeDecode(text) {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return null;
+  }
 }
 
 async function sendQr(res, joinUrl) {
